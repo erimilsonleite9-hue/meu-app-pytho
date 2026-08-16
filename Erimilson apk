@@ -1,0 +1,26 @@
+from bottle import route, run, request
+
+@route('/')
+def home():
+    return '''
+        <div style="text-align:center; padding:50px; font-family:sans-serif;">
+            <h2>Meu Primeiro App Python</h2>
+            <form action="/saudacao" method="post">
+                <input type="text" name="nome" placeholder="Digita o teu nome" style="padding:10px; font-size:16px;" required><br><br>
+                <input type="submit" value="Confirmar" style="padding:10px 20px; font-size:16px;">
+            </form>
+        </div>
+    '''
+
+@route('/saudacao', method='POST')
+def saudacao():
+    nome = request.forms.get('nome')
+    return f'''
+        <div style="text-align:center; padding:50px; font-family:sans-serif;">
+            <h2>Olá, {nome}!</h2>
+            <p style="color:green; font-size:18px;">O teu aplicativo está a funcionar perfeitamente!</p>
+            <a href="/">Voltar</a>
+        </div>
+    '''
+
+run(host='0.0.0.0', port=8080)
