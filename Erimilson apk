@@ -1,26 +1,71 @@
-from bottle import route, run, request
+name: Build APK
 
-@route('/')
-def home():
-    return '''
-        <div style="text-align:center; padding:50px; font-family:sans-serif;">
-            <h2>Meu Primeiro App Python</h2>
-            <form action="/saudacao" method="post">
-                <input type="text" name="nome" placeholder="Digita o teu nome" style="padding:10px; font-size:16px;" required><br><br>
-                <input type="submit" value="Confirmar" style="padding:10px 20px; font-size:16px;">
-            </form>
-        </div>
-    '''
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
 
-@route('/saudacao', method='POST')
-def saudacao():
-    nome = request.forms.get('nome')
-    return f'''
-        <div style="text-align:center; padding:50px; font-family:sans-serif;">
-            <h2>Olá, {nome}!</h2>
-            <p style="color:green; font-size:18px;">O teu aplicativo está a funcionar perfeitamente!</p>
-            <a href="/">Voltar</a>
-        </div>
-    '''
+jobs:
+  build:
+    runs-on: ubuntu-22.04
 
-run(host='0.0.0.0', port=8080)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            python3-dev \
+            ffmpeg \
+            libsdl2-dev \
+            libsdl2-image-dev \
+            libsdl2-mixer-dev \
+            libsdl2-ttf-dev \
+            libportmidi-dev \
+            libswscale-dev \
+            libavformat-dev \
+            libavcodec-dev \
+            zlib1g-dev \
+            unzip \
+            zip \
+            autoconf \
+            libtool \
+            pkg-config \
+            libssl-dev \
+            libffi-dev \
+            ccache \
+            lld
+
+      - name: Install Python Dependencies
+        run: |
+          pip install --upgrade pip setuptools
+          pip install buildozer cython bottle
+
+      - name: Build APK
+        run: |
+          buildozer init
+          sed -i 's/requirements = python3,kivy/requirements = python3,bottle/g' buildozer.spec
+          sed -i 's/# android.permissions = INTERNET/android.permissions = INTERNET/g' buildozer.spec
+          sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/g' buildozer.spec
+          buildozer -v android debug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: meu-app-python-apk
+          path: bin/*.apk
